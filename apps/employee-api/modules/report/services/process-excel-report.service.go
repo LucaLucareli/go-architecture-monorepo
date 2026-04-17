@@ -1,72 +1,65 @@
-package reports
+package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"shared"
-	"shared/queue/payloads"
-	"shared/report"
+	"os"
 
-	"github.com/rs/zerolog/log"
+	"shared/domain/repositories"
+	"shared/infrastructure/queue/payloads"
+	"shared/infrastructure/report"
+
+	"github.com/hibiken/asynq"
 )
 
-func NewProcessExcelReport(state shared.AppState) func(payload payloads.GenerateReportPayload) error {
-	return func(payload payloads.GenerateReportPayload) error {
-		ctx := context.Background()
-		return ProcessExcelReport(ctx, payload, state)
-	}
+type ProcessExcelReportService struct {
+	userRepo repositories.UsersRepository
 }
 
-func ProcessExcelReport(
+func NewProcessExcelReportService(userRepo repositories.UsersRepository) *ProcessExcelReportService {
+	return &ProcessExcelReportService{userRepo: userRepo}
+}
+
+func (s *ProcessExcelReportService) Execute(
 	ctx context.Context,
-	payload payloads.GenerateReportPayload,
-	state shared.AppState,
+	task *asynq.Task,
 ) error {
-	log.Info().Int32("report_id", payload.ReportID).Msg("Processando relatório EXCEL")
+	var payload payloads.GenerateReportPayload
+	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
+		return err
+	}
 
-	path := fmt.Sprintf("report_%d.xlsx", payload.ReportID)
-
-	writer, err := report.NewExcelWriter(path)
+	fileName := fmt.Sprintf("report-%d.xlsx", payload.ReportID)
+	writer, err := report.NewWriter(payload.ReportType, fileName)
 	if err != nil {
-		log.Error().Err(err).Msg("Falha ao criar ExcelWriter")
 		return err
 	}
+	defer writer.Close()
 
-	headers := []string{"ID", "Nome", "Documento"}
-	if err := writer.WriteHeader(headers); err != nil {
-		log.Error().Err(err).Msg("Falha ao escrever cabeçalho")
-		return err
-	}
+	writer.WriteHeader([]string{"ID", "Nome", "Documento"})
 
-	rowsStream, err := state.UserRepo.FindManyUsersToReport(ctx)
+	usersChan, err := s.userRepo.FindManyToReport(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("Falha ao iniciar streaming de usuários")
 		return err
 	}
 
-	for row := range rowsStream {
-		if row.Err != nil {
-			log.Error().Err(row.Err).Msg("Erro ao ler usuário do stream")
-			continue
+	for item := range usersChan {
+		if item.Err != nil {
+			return item.Err
 		}
-
-		values := []any{
-			row.User.ID,
-			row.User.Name,
-			row.User.Document,
-		}
-
-		if err := writer.WriteRow(values); err != nil {
-			log.Error().Err(err).Msg("Falha ao escrever linha")
-			return err
-		}
+		writer.WriteRow([]string{
+			item.User.ID.String(),
+			item.User.Name,
+			item.User.Document,
+		})
 	}
 
-	if err := writer.Close(); err != nil {
-		log.Error().Err(err).Msg("Falha ao salvar arquivo Excel")
-		return err
-	}
+	fmt.Printf("Relatório %s gerado com sucesso para o usuário %s\n", fileName, payload.UserID)
 
-	log.Info().Msgf("Relatório Excel gerado com sucesso: %s", path)
+	// In a real scenario, you'd upload the file and delete the local copy
+	// For now, let's just keep it or remove it.
+	os.Remove(fileName)
+
 	return nil
 }

@@ -1,36 +1,34 @@
-package reports
+package services
 
 import (
 	"context"
-
 	"employee-api/modules/report/dto/io"
-	"shared/queue/enqueue"
-	"shared/queue/payloads"
-	"shared/types"
+	"shared/domain/types"
+	"shared/infrastructure/queue/enqueue"
+	"shared/infrastructure/queue/payloads"
 
 	"github.com/hibiken/asynq"
 )
 
 type RequestReportService struct {
-	client *asynq.Client
+	asynqClient *asynq.Client
 }
 
-func NewRequestReportService(client *asynq.Client) *RequestReportService {
-	return &RequestReportService{
-		client: client,
-	}
+func NewRequestReportService(asynqClient *asynq.Client) *RequestReportService {
+	return &RequestReportService{asynqClient: asynqClient}
 }
 
 func (s *RequestReportService) Execute(
 	ctx context.Context,
-	input io.RequestReportInputDTO,
+	input io.RequestReportInputDto,
 ) error {
 
-	payload := payloads.GenerateReportPayload{
-		ReportID:   1,
-		UserID:     input.UserID,
-		ReportType: types.ReportType(input.ReportTypeID),
-	}
-
-	return enqueue.EnqueueGenerateReport(s.client, payload)
+	return enqueue.EnqueueGenerateReport(
+		s.asynqClient,
+		payloads.GenerateReportPayload{
+			ReportID:   input.ReportID,
+			UserID:     input.UserID,
+			ReportType: types.ReportType(input.ReportType),
+		},
+	)
 }

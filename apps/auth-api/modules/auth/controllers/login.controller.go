@@ -4,9 +4,8 @@ import (
 	"auth-api/modules/auth/dto/io"
 	"auth-api/modules/auth/dto/request"
 	"auth-api/modules/auth/services"
-	"net/http"
-	"shared/interfaces"
-	exceptionfactory "shared/validation/exception-factory"
+	"shared/application/interfaces"
+	exceptionfactory "shared/pkg/validation/exception-factory"
 
 	"github.com/labstack/echo/v4"
 )
@@ -15,37 +14,35 @@ type LoginController struct {
 	loginService *services.LoginService
 }
 
-func NewLoginController(s *services.LoginService) *LoginController {
-	return &LoginController{
-		loginService: s,
-	}
+func NewLoginController(loginService *services.LoginService) *LoginController {
+	return &LoginController{loginService: loginService}
 }
 
-func (ctrl *LoginController) LoginController(ctx echo.Context) error {
+func (ctrl *LoginController) Handle(c echo.Context) error {
 	var req request.LoginRequestDTO
-
-	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, map[string]string{"message": "JSON inválido"})
+	if err := c.Bind(&req); err != nil {
+		return err
 	}
 
-	if err := ctx.Validate(&req); err != nil {
-		if httpErr := exceptionfactory.CustomExceptionFactory(err); httpErr != nil {
-			return ctx.JSON(httpErr.Code, httpErr.Message)
-		}
-		return ctx.JSON(http.StatusBadRequest, map[string]string{"message": "erro desconhecido"})
+	if err := c.Validate(&req); err != nil {
+		return exceptionfactory.CustomExceptionFactory(err)
 	}
 
-	output, err := ctrl.loginService.LoginService(ctx.Request().Context(), io.LoginInputDTO{
-		Document: req.Document,
-		Password: req.Password,
-	})
+	authResponse, err := ctrl.loginService.Execute(
+		c.Request().Context(),
+		io.LoginInputDTO{
+			Document: req.Document,
+			Password: req.Password,
+		},
+	)
+
 	if err != nil {
 		return echo.NewHTTPError(401, err.Error())
 	}
 
-	interfaces.Set(ctx, interfaces.ResponseInterface[io.LoginOutputDTO]{
+	interfaces.Set(c, interfaces.ResponseInterface[*io.LoginOutputDTO]{
 		Message: "Login realizado com sucesso",
-		Result:  *output,
+		Result:  authResponse,
 	})
 
 	return nil

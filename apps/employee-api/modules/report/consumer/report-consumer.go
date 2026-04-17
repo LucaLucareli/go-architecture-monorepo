@@ -1,95 +1,43 @@
 package consumer
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"shared/types"
-
-	"shared/queue/payloads"
-
-	"github.com/hibiken/asynq"
-	"github.com/rs/zerolog/log"
+	"employee-api/modules/report/services"
+	"shared/domain/types"
+	"shared/infrastructure/queue"
+	"shared/infrastructure/queue/payloads"
 )
 
-type ReportProcessorFunc func(
-	payload payloads.GenerateReportPayload,
-) error
-
-type ReportProcessorRegistry struct {
-	processors map[types.ReportType]ReportProcessorFunc
+type ReportConsumer struct {
+	processExcelReportService *services.ProcessExcelReportService
 }
 
-func NewReportProcessorRegistry(
-	ExcelProcessor ReportProcessorFunc,
-) *ReportProcessorRegistry {
-	return &ReportProcessorRegistry{
-		processors: map[types.ReportType]ReportProcessorFunc{
-			types.Excel: ExcelProcessor,
+func NewReportConsumer(processExcelReportService *services.ProcessExcelReportService) *ReportConsumer {
+	return &ReportConsumer{processExcelReportService: processExcelReportService}
+}
+
+func (c *ReportConsumer) GetHandlers() []queue.TaskHandler {
+	return []queue.TaskHandler{
+		{
+			Task:    queue.TaskGenerateReport,
+			Handler: c.processExcelReportService.Execute,
 		},
 	}
 }
 
-func (r *ReportProcessorRegistry) Process(
-	payload payloads.GenerateReportPayload,
-) error {
-	processor, ok := r.processors[payload.ReportType]
-	if !ok {
-		return fmt.Errorf(
-			"Nenhum processador registrado para o tipo de relatório %d",
-			payload.ReportType,
-		)
-	}
-
-	return processor(payload)
-}
-
-type ReportProcessor struct {
-	registry *ReportProcessorRegistry
-}
-
-func NewReportProcessor(
-	registry *ReportProcessorRegistry,
-) *ReportProcessor {
-	return &ReportProcessor{
-		registry: registry,
+func (c *ReportConsumer) GetPayload(taskType string) interface{} {
+	switch taskType {
+	case queue.TaskGenerateReport:
+		return payloads.GenerateReportPayload{}
+	default:
+		return nil
 	}
 }
 
-func (p *ReportProcessor) Handler() asynq.HandlerFunc {
-	return func(ctx context.Context, t *asynq.Task) error {
-		return p.ProcessTask(ctx, t)
+func (c *ReportConsumer) GetReportType(taskType string) types.ReportType {
+	switch taskType {
+	case queue.TaskGenerateReport:
+		return types.Excel
+	default:
+		return 0
 	}
-}
-
-func (p *ReportProcessor) ProcessTask(
-	ctx context.Context,
-	t *asynq.Task,
-) error {
-	var payload payloads.GenerateReportPayload
-
-	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
-		return err
-	}
-
-	log.Info().
-		Int32("report_id", payload.ReportID).
-		Str("user_id", payload.UserID).
-		Int("report_type", int(payload.ReportType)).
-		Msg("Iniciando geração de relatório")
-
-	if err := p.registry.Process(payload); err != nil {
-		log.Error().
-			Err(err).
-			Int32("report_id", payload.ReportID).
-			Msg("Falha ao gerar relatório")
-
-		return err
-	}
-
-	log.Info().
-		Int32("report_id", payload.ReportID).
-		Msg("Relatório gerado com sucesso")
-
-	return nil
 }

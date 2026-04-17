@@ -1,11 +1,25 @@
 package services
 
-type UserService struct{}
+import (
+	"context"
+	"shared/domain/entities"
+	"shared/domain/repositories"
 
-func NewUserService() *UserService {
-	return &UserService{}
+	"github.com/google/uuid"
+)
+
+type FindUserByIdService struct {
+	userRepo repositories.UsersRepository
 }
 
-func (s *UserService) GetGreeting() string {
-	return "Oi"
+func NewFindUserByIdService(userRepo repositories.UsersRepository) *FindUserByIdService {
+	return &FindUserByIdService{userRepo: userRepo}
+}
+
+func (s *FindUserByIdService) Execute(
+	ctx context.Context,
+	id uuid.UUID,
+) (*entities.User, error) {
+
+	return s.userRepo.FindByID(ctx, id)
 }

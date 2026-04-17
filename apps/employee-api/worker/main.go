@@ -1,57 +1,37 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"os"
 
-	"employee-api/modules/report/consumer"
-	reports "employee-api/modules/report/services"
+	"employee-api/modules"
 	"shared"
-	"shared/helpers"
-	"shared/logger"
-	"shared/queue"
-)
+	"shared/infrastructure/queue"
+	"shared/pkg/helpers"
+	"shared/pkg/logger"
 
-const (
-	DefaultDB        = "postgresql://postgres:pass@localhost:5432/employee_db?sslmode=disable"
-	DefaultRedisPort = "1234"
-	DefaultEnv       = "DEV"
-	Name             = "EmployeeApi - QUEUE"
+	"github.com/joho/godotenv"
 )
-
-func init() {
-	env := helpers.GetEnv("LOG", DefaultEnv)
-	logger.Init(Name, logger.ColorPurple, env)
-}
 
 func main() {
-	dbURL := helpers.GetEnv("DATABASE_URL", DefaultDB)
+	godotenv.Load()
 
-	redisPort := helpers.GetEnv("REDIS_CACHE_PORT", DefaultRedisPort)
-	redisURL := fmt.Sprintf("localhost:%s", redisPort)
+	dbPostgresURL := os.Getenv("DATABASE_URL")
+	dbRedisURL := os.Getenv("REDIS_URL")
 
-	state := shared.NewAppState(dbURL, redisURL)
+	appState := shared.NewAppState(dbPostgresURL, dbRedisURL)
 
-	registry := consumer.NewReportProcessorRegistry(
-		reports.NewProcessExcelReport(*state),
-	)
-
-	reportProcessor := consumer.NewReportProcessor(registry)
+	logger.Init("WORKER", logger.ColorCyan, "DEV")
 
 	mux := queue.NewMux(
 		queue.QueueLifecycleOptions{
 			QueueName: "reports",
-			Inspector: state.AsynqInspector,
+			Inspector: appState.AsynqInspector,
 		},
-		queue.TaskHandler{
-			Task:    queue.TaskGenerateReport,
-			Handler: reportProcessor.Handler(),
-		},
+		modules.NewReportModule(appState).GetHandlers()...,
 	)
 
-	log.Println("🚀 Report Worker started")
-
-	if err := state.AsynqServer.Run(mux); err != nil {
+	if err := appState.AsynqServer.Run(mux); err != nil {
 		log.Fatal(err)
 	}
 }

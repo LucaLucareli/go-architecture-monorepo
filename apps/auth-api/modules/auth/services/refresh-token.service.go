@@ -3,7 +3,7 @@ package services
 import (
 	"auth-api/modules/auth/dto/io"
 	"context"
-	"shared/auth"
+	"shared/application/auth"
 )
 
 type RefreshTokenService struct {
@@ -11,26 +11,25 @@ type RefreshTokenService struct {
 }
 
 func NewRefreshTokenService(authService *auth.AuthService) *RefreshTokenService {
-	return &RefreshTokenService{
-		authService: authService,
-	}
+	return &RefreshTokenService{authService: authService}
 }
 
-func (s *RefreshTokenService) RefreshTokenService(
+func (s *RefreshTokenService) Execute(
 	ctx context.Context,
 	input io.RefreshTokenInputDTO,
 ) (*io.RefreshTokenOutputDTO, error) {
 
-	response, err := s.authService.RefreshToken(
+	authResponse, err := s.authService.RefreshToken(
 		ctx,
 		input.RefreshToken,
 	)
+
 	if err != nil {
 		return nil, err
 	}
 
 	return &io.RefreshTokenOutputDTO{
-		AccessToken:  response.AccessToken,
-		RefreshToken: response.RefreshToken,
+		AccessToken:  authResponse.AccessToken,
+		RefreshToken: authResponse.RefreshToken,
 	}, nil
 }

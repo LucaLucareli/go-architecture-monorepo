@@ -4,21 +4,25 @@ import (
 	"employee-api/modules/users/controllers"
 	"employee-api/modules/users/services"
 	"shared"
-
-	"shared/enums"
-	"shared/middlewares"
+	"shared/domain/enums"
+	"shared/pkg/middlewares"
 
 	"github.com/labstack/echo/v4"
-	"github.com/quantumsheep/plouf"
 )
 
-type UserModule struct {
-	plouf.Module
-}
+func NewUserModule(e *echo.Echo, appState *shared.AppState) {
 
-func (m *UserModule) RegisterRoutes(e *echo.Group, state *shared.AppState) {
-	svc := services.NewUserService()
-	ctrl := controllers.NewUserController(svc)
+	findUserByIdService := services.NewFindUserByIdService(appState.UserRepo)
+	findUserByIdController := controllers.NewFindUserByIdController(findUserByIdService)
 
-	e.GET("/oi", middlewares.RequireAccess(state.AuthService, enums.AccessGroupEmployee)(ctrl.SayHello))
+	userGroup := e.Group("/users")
+
+	userGroup.Use(middlewares.RequireAccess(
+		appState.AuthService,
+		enums.AccessGroupEmployee,
+		enums.AccessGroupAdmin,
+		enums.AccessGroupSuperAdmin,
+	))
+
+	userGroup.GET("/:id", findUserByIdController.Handle)
 }

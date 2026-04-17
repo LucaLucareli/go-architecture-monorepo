@@ -20,6 +20,6 @@ func (m *AuthModule) RegisterRoutes(e *echo.Group, state *shared.AppState) {
 	refreshTokenService := services.NewRefreshTokenService(state.AuthService)
 	refreshTokenController := controllers.NewRefreshTokenController(refreshTokenService)
 
-	e.POST("/login", loginController.LoginController)
-	e.POST("/refresh-token", refreshTokenController.RefreshTokenController)
+	e.POST("/login", loginController.Handle)
+	e.POST("/refresh-token", refreshTokenController.Handle)
 }

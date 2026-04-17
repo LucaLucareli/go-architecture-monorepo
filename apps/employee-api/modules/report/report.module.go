@@ -1,30 +1,47 @@
 package report
 
 import (
+	"employee-api/modules/report/consumer"
 	"employee-api/modules/report/controllers"
-	reports "employee-api/modules/report/services"
+	"employee-api/modules/report/services"
 	"shared"
-
-	"shared/enums"
-	"shared/middlewares"
+	"shared/domain/enums"
+	"shared/infrastructure/queue"
+	"shared/pkg/middlewares"
 
 	"github.com/labstack/echo/v4"
-	"github.com/quantumsheep/plouf"
 )
 
 type ReportModule struct {
-	plouf.Module
+	requestReportController *controllers.RequestReportController
+	reportConsumer          *consumer.ReportConsumer
 }
 
-func (m *ReportModule) RegisterRoutes(e *echo.Group, state *shared.AppState) {
-	reportService := reports.NewRequestReportService(state.AsynqClient)
-	reportController := controllers.NewRequestReportController(reportService)
+func NewReportModule(appState *shared.AppState) *ReportModule {
+	requestReportService := services.NewRequestReportService(appState.AsynqClient)
+	requestReportController := controllers.NewRequestReportController(requestReportService)
 
-	e.POST(
-		"/report",
-		middlewares.RequireAccess(
-			state.AuthService,
-			enums.AccessGroupEmployee,
-		)(reportController.RequestReportController),
-	)
+	processExcelReportService := services.NewProcessExcelReportService(appState.UserRepo)
+	reportConsumer := consumer.NewReportConsumer(processExcelReportService)
+
+	return &ReportModule{
+		requestReportController: requestReportController,
+		reportConsumer:          reportConsumer,
+	}
+}
+
+func (m *ReportModule) RegisterRoutes(e *echo.Echo, appState *shared.AppState) {
+	reportGroup := e.Group("/reports")
+
+	reportGroup.Use(middlewares.RequireAccess(
+		appState.AuthService,
+		enums.AccessGroupAdmin,
+		enums.AccessGroupSuperAdmin,
+	))
+
+	reportGroup.POST("/request", m.requestReportController.Handle)
+}
+
+func (m *ReportModule) GetHandlers() []queue.TaskHandler {
+	return m.reportConsumer.GetHandlers()
 }

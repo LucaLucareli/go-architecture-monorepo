@@ -4,33 +4,34 @@ import (
 	"log"
 	"os"
 
-	"shared/auth"
-	"shared/database"
-	"shared/ent"
-	"shared/helpers"
-	"shared/queue"
-	repository "shared/repository/users"
+	"shared/application/auth"
+	"shared/domain/repositories"
+	"shared/infrastructure/persistence/postgres/database"
+	postgresRepo "shared/infrastructure/persistence/postgres/repositories"
+	"shared/infrastructure/queue"
+	"shared/infrastructure/queue/asynq"
+	"shared/pkg/helpers"
 
-	"github.com/hibiken/asynq"
+	hibikenAsynq "github.com/hibiken/asynq"
 )
 
 type AppState struct {
 	AuthService    *auth.AuthService
-	UserRepo       repository.UsersRepository
-	AsynqClient    *asynq.Client
-	AsynqConfig    database.AsynqConfig
-	AsynqServer    *asynq.Server
-	AsynqInspector *asynq.Inspector
+	UserRepo       repositories.UsersRepository
+	AsynqClient    *hibikenAsynq.Client
+	AsynqConfig    asynq.AsynqConfig
+	AsynqServer    *hibikenAsynq.Server
+	AsynqInspector *hibikenAsynq.Inspector
 }
 
 func NewAppState(dbPostgresURL, dbRedisURL string) *AppState {
 
-	clientPostgres, err := ent.Open("postgres", dbPostgresURL)
+	clientPostgres, err := database.NewEntClient(dbPostgresURL)
 	if err != nil {
 		log.Fatalf("erro ao conectar no banco: %v", err)
 	}
 
-	userRepo := repository.NewUsersRepository(clientPostgres)
+	userRepo := postgresRepo.NewUsersRepository(clientPostgres)
 
 	accessSecret := os.Getenv("JWT_ACCESS_SECRET")
 	if accessSecret == "" {
@@ -53,17 +54,17 @@ func NewAppState(dbPostgresURL, dbRedisURL string) *AppState {
 		UserRepo:          userRepo,
 	}
 
-	asynqCfg := database.AsynqConfig{
+	asynqCfg := asynq.AsynqConfig{
 		Addr:     helpers.GetEnv("REDIS_ADDR", dbRedisURL),
 		Password: os.Getenv("REDIS_PASSWORD"),
 		DB:       helpers.GetEnv("REDIS_DB", 0),
 	}
 
-	asynqClient := database.NewAsynqClient(asynqCfg)
+	asynqClient := asynq.NewAsynqClient(asynqCfg)
 
 	asynqServer := queue.NewAsynqServer(asynqCfg)
 
-	inspector := asynq.NewInspector(asynq.RedisClientOpt{
+	inspector := hibikenAsynq.NewInspector(hibikenAsynq.RedisClientOpt{
 		Addr: dbRedisURL,
 	})
 
