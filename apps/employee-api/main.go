@@ -39,7 +39,8 @@ func main() {
 
 	logger.Init("EMPLOYEE-API", logger.ColorBlue, "DEV")
 
-	modules.NewAppModule(e, appState)
+	appModule := modules.NewAppModule()
+	appModule.RegisterAllRoutes(e, appState)
 
 	port := helpers.GetEnv("PORT", 3000)
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", port)))

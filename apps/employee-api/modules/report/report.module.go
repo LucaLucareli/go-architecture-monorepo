@@ -30,7 +30,12 @@ func NewReportModule(appState *shared.AppState) *ReportModule {
 	}
 }
 
-func (m *ReportModule) RegisterRoutes(e *echo.Echo, appState *shared.AppState) {
+func (m *ReportModule) RegisterRoutes(e *echo.Group, appState *shared.AppState) {
+	if m.requestReportController == nil {
+		requestReportService := services.NewRequestReportService(appState.AsynqClient)
+		m.requestReportController = controllers.NewRequestReportController(requestReportService)
+	}
+
 	reportGroup := e.Group("/reports")
 
 	reportGroup.Use(middlewares.RequireAccess(

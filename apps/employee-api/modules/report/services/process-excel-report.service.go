@@ -48,7 +48,7 @@ func (s *ProcessExcelReportService) Execute(
 		if item.Err != nil {
 			return item.Err
 		}
-		writer.WriteRow([]string{
+		writer.WriteRow([]any{
 			item.User.ID.String(),
 			item.User.Name,
 			item.User.Document,

@@ -1,6 +1,7 @@
 package io
 
-type RequestReportInputDTO struct {
-	UserID       string `json:"userId"`
-	ReportTypeID int32  `json:"reportTypeId"`
+type RequestReportInputDto struct {
+	UserID     string `json:"userId"`
+	ReportType int32  `json:"reportType"`
+	ReportID   int32  `json:"reportId"`
 }

@@ -8,9 +8,14 @@ import (
 	"shared/pkg/middlewares"
 
 	"github.com/labstack/echo/v4"
+	"github.com/quantumsheep/plouf"
 )
 
-func NewUserModule(e *echo.Echo, appState *shared.AppState) {
+type UserModule struct {
+	plouf.Module
+}
+
+func (m *UserModule) RegisterRoutes(e *echo.Group, appState *shared.AppState) {
 
 	findUserByIdService := services.NewFindUserByIdService(appState.UserRepo)
 	findUserByIdController := controllers.NewFindUserByIdController(findUserByIdService)

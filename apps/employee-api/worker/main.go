@@ -4,10 +4,9 @@ import (
 	"log"
 	"os"
 
-	"employee-api/modules"
+	"employee-api/modules/report"
 	"shared"
 	"shared/infrastructure/queue"
-	"shared/pkg/helpers"
 	"shared/pkg/logger"
 
 	"github.com/joho/godotenv"
@@ -28,7 +27,7 @@ func main() {
 			QueueName: "reports",
 			Inspector: appState.AsynqInspector,
 		},
-		modules.NewReportModule(appState).GetHandlers()...,
+		report.NewReportModule(appState).GetHandlers()...,
 	)
 
 	if err := appState.AsynqServer.Run(mux); err != nil {

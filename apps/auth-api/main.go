@@ -40,7 +40,8 @@ func main() {
 
 	logger.Init("AUTH-API", logger.ColorPurple, "DEV")
 
-	modules.NewAppModule(e, appState)
+	appModule := modules.NewAppModule()
+	appModule.RegisterAllRoutes(e, appState)
 
 	port := helpers.GetEnv("PORT", 3001)
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", port)))

@@ -17,7 +17,8 @@ type AppModule struct {
 
 func NewAppModule() *AppModule {
 	return &AppModule{
-		UserModule: &users.UserModule{},
+		UserModule:   &users.UserModule{},
+		ReportModule: &report.ReportModule{},
 	}
 }
 
