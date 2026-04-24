@@ -26,7 +26,6 @@ func (r *usersRepository) FindUserToLogin(
 	ctx context.Context,
 	document string,
 ) (*entities.User, error) {
-
 	u, err := r.client.User.
 		Query().
 		Where(user.DocumentEQ(document)).
@@ -35,6 +34,9 @@ func (r *usersRepository) FindUserToLogin(
 		}).
 		Only(ctx)
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -45,7 +47,6 @@ func (r *usersRepository) FindByID(
 	ctx context.Context,
 	id uuid.UUID,
 ) (*entities.User, error) {
-
 	u, err := r.client.User.
 		Query().
 		Where(user.IDEQ(id)).
@@ -54,6 +55,9 @@ func (r *usersRepository) FindByID(
 		}).
 		Only(ctx)
 	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, nil
+		}
 		return nil, err
 	}
 

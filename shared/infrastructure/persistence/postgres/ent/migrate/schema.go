@@ -40,7 +40,7 @@ var (
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
 		{Name: "name", Type: field.TypeString, Nullable: true, Size: 256},
-		{Name: "password", Type: field.TypeString, Size: 30},
+		{Name: "password", Type: field.TypeString, Size: 100},
 		{Name: "is_manager", Type: field.TypeBool, Default: false},
 		{Name: "photo_url", Type: field.TypeString, Nullable: true, Size: 500},
 		{Name: "document", Type: field.TypeString, Unique: true, Size: 50},

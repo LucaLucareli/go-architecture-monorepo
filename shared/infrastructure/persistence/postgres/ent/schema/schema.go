@@ -18,7 +18,7 @@ func (User) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).Default(uuid.New),
 		field.String("name").Optional().MaxLen(256),
-		field.String("password").MaxLen(30),
+		field.String("password").MaxLen(100),
 		field.Bool("is_manager").Default(false),
 		field.String("photo_url").Optional().MaxLen(500),
 		field.String("document").MaxLen(50).Unique(),
