@@ -1,4 +1,4 @@
-# Guia de Desenvolvimento - Goodwe Backend
+# Guia de Desenvolvimento - API golang
 
 Este guia contém todos os comandos necessários para configurar e rodar o projeto localmente.
 
