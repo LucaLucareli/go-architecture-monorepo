@@ -3,24 +3,32 @@ package container
 import (
 	"shared/infrastructure/persistence/postgres/database"
 	"shared/infrastructure/persistence/postgres/ent"
+	"sync"
 
 	"github.com/quantumsheep/plouf"
 )
 
 type DatabaseService struct {
 	plouf.Service
-	Client *ent.Client
+	client *ent.Client
+	dbURL  string
+	once   sync.Once
+	err    error
 }
 
-func NewDatabaseService(dbURL string) (*DatabaseService, error) {
-	client, err := database.NewEntClient(dbURL)
-	if err != nil {
-		return nil, err
-	}
-
+// NewDatabaseService cria o serviço mas não conecta ao banco imediatamente (Lazy).
+func NewDatabaseService(dbURL string) *DatabaseService {
 	return &DatabaseService{
-		Client: client,
-	}, nil
+		dbURL: dbURL,
+	}
+}
+
+// Client retorna a conexão com o banco, inicializando-a apenas na primeira chamada.
+func (s *DatabaseService) Client() (*ent.Client, error) {
+	s.once.Do(func() {
+		s.client, s.err = database.NewEntClient(s.dbURL)
+	})
+	return s.client, s.err
 }
 
 type MainModule struct {
@@ -29,10 +37,7 @@ type MainModule struct {
 }
 
 func Build(dbURL string) (*plouf.Worker, *MainModule, error) {
-	dbService, err := NewDatabaseService(dbURL)
-	if err != nil {
-		return nil, nil, err
-	}
+	dbService := NewDatabaseService(dbURL)
 
 	mainModule := &MainModule{
 		DB: dbService,
@@ -43,6 +48,7 @@ func Build(dbURL string) (*plouf.Worker, *MainModule, error) {
 		return nil, nil, err
 	}
 
+	// Injeta o serviço; a conexão real só ocorrerá quando algo chamar s.DB.Client()
 	if err := worker.Inject(mainModule.DB); err != nil {
 		return nil, nil, err
 	}

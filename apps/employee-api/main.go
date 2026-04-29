@@ -4,10 +4,13 @@ import (
 	"employee-api/modules"
 	"fmt"
 	"os"
+	"time"
+
 	"shared"
 	"shared/pkg/helpers"
 	"shared/pkg/interceptors"
 	"shared/pkg/logger"
+	"shared/pkg/middlewares"
 	"shared/pkg/validation"
 	exceptionfactory "shared/pkg/validation/exception-factory"
 
@@ -16,7 +19,9 @@ import (
 )
 
 func main() {
-	godotenv.Load()
+	if err := godotenv.Load(); err != nil {
+		fmt.Println("No .env file found, using system environment variables")
+	}
 
 	dbPostgresURL := os.Getenv("DATABASE_URL")
 	dbRedisURL := os.Getenv("REDIS_URL")
@@ -36,6 +41,9 @@ func main() {
 
 	e.Use(interceptors.RequestLogger)
 	e.Use(interceptors.TransformInterceptor)
+	e.Use(middlewares.TimeoutMiddleware(30 * time.Second))
+	e.Use(middlewares.AsyncAuditMiddleware())
+	e.Use(middlewares.RateLimitMiddleware(20, 100))
 
 	logger.Init("EMPLOYEE-API", logger.ColorBlue, "DEV")
 

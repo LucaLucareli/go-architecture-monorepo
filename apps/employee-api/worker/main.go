@@ -13,7 +13,9 @@ import (
 )
 
 func main() {
-	godotenv.Load()
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using system environment variables")
+	}
 
 	dbPostgresURL := os.Getenv("DATABASE_URL")
 	dbRedisURL := os.Getenv("REDIS_URL")
@@ -25,12 +27,12 @@ func main() {
 	mux := queue.NewMux(
 		queue.QueueLifecycleOptions{
 			QueueName: "reports",
-			Inspector: appState.AsynqInspector,
+			Inspector: appState.AsynqInspector(),
 		},
 		report.NewReportModule(appState).GetHandlers()...,
 	)
 
-	if err := appState.AsynqServer.Run(mux); err != nil {
+	if err := appState.AsynqServer().Run(mux); err != nil {
 		log.Fatal(err)
 	}
 }

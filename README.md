@@ -1,6 +1,6 @@
 # api-golang
 
- A api está seguindo princípios de **Clean Architecture** e **DDD (Domain Driven Design)**.
+A api está seguindo princípios de **Clean Architecture** e **DDD (Domain Driven Design)**.
 
 ## Estrutura do Projeto
 
@@ -38,6 +38,24 @@ Contém os serviços executáveis:
 *   **`employee-api/`**: Responsável pela gestão de funcionários e geração de relatórios.
     *   `worker/`: Processador de tarefas assíncronas (background jobs).
 
+## Destaques Técnicos & Performance
+
+Este projeto implementa padrões avançados para garantir alta disponibilidade e baixo consumo de recursos:
+
+### 1. Lazy Loading DI Container
+Implementado o carregamento tardio de dependências utilizando o padrão **Singleton Seguro** com `sync.Once`.
+- **Vantagem:** Conexões pesadas (Postgres, Redis) só são estabelecidas no momento do primeiro uso real.
+- **Resultado:** Startup quase instantâneo dos serviços e economia de memória em ambientes escaláveis.
+
+### 2. Auditoria Assíncrona (Non-blocking)
+Middleware de auditoria que utiliza **Goroutines** e **Channels com buffer**.
+- **Mecânica:** Os logs de acesso são enviados para um buffer em memória. Um worker em background consome esses dados e os processa sem adicionar milissegundos à latência da requisição do usuário.
+- **Resiliência:** Inclui mecanismos de queda controlada (drop entry) caso o buffer atinja o limite, protegendo a estabilidade da aplicação principal.
+
+### 3. Resiliência e Proteção (Middlewares)
+- **Timeout (Context Deadline):** Controle rígido do ciclo de vida da request. Se uma query ou processamento travar, o contexto é cancelado automaticamente para evitar processos zumbis.
+- **Rate Limiting (Token Bucket):** Proteção contra ataques de força bruta e DoS no nível de IP, garantindo que o throughput da aplicação seja respeitado.
+
 ## Tecnologias Utilizadas
 
 *   **Go (Golang)** 1.24+
@@ -54,3 +72,4 @@ Contém os serviços executáveis:
 *   **Dependency Injection**: Facilita testes e modularidade.
 *   **DTO (Data Transfer Objects)**: Define contratos claros entre camadas e APIs.
 *   **Strategy Pattern**: Utilizado na fábrica de geradores de relatórios.
+*   **Singleton with sync.Once**: Utilizado para injeção de dependência preguiçosa (Lazy Loading).

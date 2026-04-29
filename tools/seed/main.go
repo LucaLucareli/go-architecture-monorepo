@@ -20,7 +20,9 @@ import (
 )
 
 func main() {
-	godotenv.Load("../../.env") // Load from root if running from tools/seed
+	if err := godotenv.Load("../../.env"); err != nil {
+		fmt.Println("No .env file found at ../../.env, using system environment variables")
+	}
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {

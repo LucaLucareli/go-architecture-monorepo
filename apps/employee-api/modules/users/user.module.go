@@ -17,13 +17,13 @@ type UserModule struct {
 
 func (m *UserModule) RegisterRoutes(e *echo.Group, appState *shared.AppState) {
 
-	findUserByIdService := services.NewFindUserByIdService(appState.UserRepo)
+	findUserByIdService := services.NewFindUserByIdService(appState.UserRepo())
 	findUserByIdController := controllers.NewFindUserByIdController(findUserByIdService)
 
 	userGroup := e.Group("/users")
 
 	userGroup.Use(middlewares.RequireAccess(
-		appState.AuthService,
+		appState.AuthService(),
 		enums.AccessGroupEmployee,
 		enums.AccessGroupAdmin,
 		enums.AccessGroupSuperAdmin,

@@ -18,10 +18,10 @@ type ReportModule struct {
 }
 
 func NewReportModule(appState *shared.AppState) *ReportModule {
-	requestReportService := services.NewRequestReportService(appState.AsynqClient)
+	requestReportService := services.NewRequestReportService(appState.AsynqClient())
 	requestReportController := controllers.NewRequestReportController(requestReportService)
 
-	processExcelReportService := services.NewProcessExcelReportService(appState.UserRepo)
+	processExcelReportService := services.NewProcessExcelReportService(appState.UserRepo())
 	reportConsumer := consumer.NewReportConsumer(processExcelReportService)
 
 	return &ReportModule{
@@ -32,14 +32,14 @@ func NewReportModule(appState *shared.AppState) *ReportModule {
 
 func (m *ReportModule) RegisterRoutes(e *echo.Group, appState *shared.AppState) {
 	if m.requestReportController == nil {
-		requestReportService := services.NewRequestReportService(appState.AsynqClient)
+		requestReportService := services.NewRequestReportService(appState.AsynqClient())
 		m.requestReportController = controllers.NewRequestReportController(requestReportService)
 	}
 
 	reportGroup := e.Group("/reports")
 
 	reportGroup.Use(middlewares.RequireAccess(
-		appState.AuthService,
+		appState.AuthService(),
 		enums.AccessGroupAdmin,
 		enums.AccessGroupSuperAdmin,
 	))
