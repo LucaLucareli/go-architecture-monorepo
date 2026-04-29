@@ -1,4 +1,4 @@
-# api-golang
+# go-architecture-monorepo
 
 A api está seguindo princípios de **Clean Architecture** e **DDD (Domain Driven Design)**.
 
