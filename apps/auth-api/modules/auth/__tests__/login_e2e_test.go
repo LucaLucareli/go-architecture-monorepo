@@ -35,6 +35,8 @@ func init() {
 
 func setupLoginTest(t *testing.T) (*echo.Echo, *ent.Client) {
 	client := testutils.GetTestClient(t)
+	testutils.CleanupDatabase(t, client)
+  
 	ctx := context.Background()
 
 	client.UserStatus.Create().SetID(1).SetExternalID("ACT").SetName("Active").ExecX(ctx)
