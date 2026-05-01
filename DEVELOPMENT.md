@@ -79,7 +79,21 @@ cd apps/employee-api/worker && go run main.go
 
 ---
 
-## 7. Comandos de Manutenção
+## 7. Testes
+
+### Rodar todos os testes do workspace
+```bash
+go test ./...
+```
+
+### Rodar testes E2E do Auth API
+```bash
+go test -v ./apps/auth-api/modules/auth/__tests__
+```
+
+---
+
+## 8. Comandos de Manutenção
 
 ### Limpar Dependências
 ```bash
